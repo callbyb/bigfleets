@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Interativo: Análise Financeira da Localiza</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Cool Accents -->
+    <!-- Application Structure Plan: A thematic, dashboard-style SPA designed to guide the user through Localiza's financial story. The structure is non-linear compared to the report, starting with a high-level overview, then diving into thematic sections: 1) Growth Engine (DRE), 2) Capital Structure (Balance Sheet), 3) The Cash Conundrum (Cash Flow Anomaly), 4) Risk Dashboard, and 5) Strategic Core (Business Model). This narrative approach was chosen to make the complex financial data more digestible and to highlight the key findings (like the cash flow anomaly) more effectively for better user understanding and engagement. -->
+    <!-- Visualization & Content Choices: DRE Trends -> Bar/Line Chart (Goal: Compare/Change, shows scale difference between Revenue and Profit). Revenue Split -> Donut Chart (Goal: Compare Proportion). Asset Growth -> Stacked Area Chart (Goal: Change/Compare, visually represents the capital-intensive model and merger impact). Cash Flow Anomaly -> Bar Chart with negative values (Goal: Highlight Anomaly, clearly contrasts negative operating cash with positive financing cash). Risk Ratios -> Line Chart (Goal: Show Change over time). Business Model -> HTML/CSS Diagram (Goal: Organize/Explain Process, avoids SVG/Mermaid). All choices use Chart.js on Canvas for interactivity and responsiveness, adhering to the no-SVG constraint. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4; /* Warm Neutral */
+            color: #3A3D42; /* Dark Gray */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #4A90E2; /* Cool Accent */
+            border-bottom-color: #4A90E2;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+        }
+        .kpi-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #4A90E2; /* Cool Accent */
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="navbar" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <span class="text-xl font-bold text-[#3A3D42]">Análise Localiza</span>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#growth" class="nav-link border-b-2 border-transparent pb-1">Crescimento</a>
+                    <a href="#capital" class="nav-link border-b-2 border-transparent pb-1">Capital</a>
+                    <a href="#cashflow" class="nav-link border-b-2 border-transparent pb-1">Fluxo de Caixa</a>
+                    <a href="#risks" class="nav-link border-b-2 border-transparent pb-1">Riscos</a>
+                    <a href="#strategy" class="nav-link border-b-2 border-transparent pb-1">Estratégia</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#3A3D42] mb-3">Raio-X Financeiro: Localiza (RENT3)</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">Uma análise interativa da performance, estrutura de capital e riscos da líder em mobilidade, com base em dados de 2019 a 2025.</p>
+        </header>
+
+        <section id="growth" class="mb-16 scroll-mt-20">
+            <div class="card">
+                <h2 class="text-3xl font-bold text-[#3A3D42] mb-2">O Motor de Crescimento</h2>
+                <p class="text-gray-600 mb-6">Esta seção explora a evolução da receita e da lucratividade da Localiza. O crescimento expressivo da receita total, especialmente após 2022, reflete o impacto da fusão com a Unidas e a força do segmento de Seminovos, que se tornou um pilar estratégico para a geração de receita, superando até mesmo as receitas de aluguel no 1T25.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <h3 class="font-semibold text-center mb-2">Receita Total vs. Lucro Líquido (2020-2024)</h3>
+                        <div class="chart-container h-[450px]">
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-6">
+                        <div>
+                            <h3 class="font-semibold text-center mb-2">Divisão da Receita (1T25)</h3>
+                            <div class="chart-container h-56">
+                                <canvas id="revenueSplitChart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-center mb-2">Margens EBITDA (1T25)</h3>
+                            <div class="chart-container h-56">
+                                <canvas id="ebitdaMarginChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="capital" class="mb-16 scroll-mt-20">
+            <div class="card">
+                <h2 class="text-3xl font-bold text-[#3A3D42] mb-2">Estrutura de Capital Intensivo</h2>
+                <p class="text-gray-600 mb-6">O modelo de negócio da Localiza exige investimentos massivos e contínuos em sua frota. O gráfico abaixo ilustra o crescimento exponencial dos ativos da empresa, financiado por uma combinação de dívida e patrimônio líquido. O salto monumental em 2022 demarca claramente a aquisição da Unidas, que redefiniu a escala da companhia.</p>
+                 <h3 class="font-semibold text-center mb-2">Evolução do Balanço Patrimonial (2020-2024)</h3>
+                <div class="chart-container h-[450px]">
+                    <canvas id="balanceSheetChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="cashflow" class="mb-16 scroll-mt-20">
+            <div class="card bg-[#3A3D42] text-white">
+                <h2 class="text-3xl font-bold mb-2">O Paradoxo do Fluxo de Caixa</h2>
+                <p class="text-gray-300 mb-6">Aqui reside uma das principais anomalias financeiras da Localiza. Entre 2021 e 2023, a empresa registrou um fluxo de caixa operacional consistentemente negativo. Isso significa que as operações principais não geraram caixa suficiente para se sustentar, tornando a empresa dependente de financiamento externo (dívida e emissão de ações) para financiar seu crescimento agressivo e a renovação da frota. A recuperação em 2024 é um sinal positivo de maior disciplina de capital.</p>
+                <h3 class="font-semibold text-center mb-2">Fluxo de Caixa: Operações vs. Financiamento (2020-2024)</h3>
+                <div class="chart-container h-[450px]">
+                    <canvas id="cashFlowChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="risks" class="mb-16 scroll-mt-20">
+             <div class="card">
+                <h2 class="text-3xl font-bold text-[#3A3D42] mb-2">Painel de Riscos</h2>
+                <p class="text-gray-600 mb-6">A alta alavancagem e a sensibilidade ao ambiente macroeconômico são os principais desafios. Esta seção detalha os riscos de crédito, liquidez e mercado, com base nos principais indicadores financeiros.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="border p-4 rounded-lg">
+                        <h4 class="font-bold text-xl mb-2">Risco de Crédito</h4>
+                        <p class="text-sm text-gray-600 mb-4">A alavancagem é elevada, mas com tendência de melhora projetada pela Moody's.</p>
+                        <p class="text-gray-700 font-semibold">Dívida / EBITDA</p>
+                        <p class="kpi-value">3.5x</p>
+                        <p class="text-xs text-gray-500">(LTM Set-23)</p>
+                        <div class="chart-container h-48 mt-4">
+                            <canvas id="debtEbitdaChart"></canvas>
+                        </div>
+                    </div>
+                     <div class="border p-4 rounded-lg">
+                        <h4 class="font-bold text-xl mb-2">Risco de Liquidez</h4>
+                        <p class="text-sm text-gray-600 mb-4">A posição de caixa é suficiente para cobrir obrigações de curto prazo, mas a margem não é ampla.</p>
+                        <p class="text-gray-700 font-semibold">Índice de Liquidez Corrente</p>
+                        <p class="kpi-value">1.17</p>
+                        <p class="text-xs text-gray-500">(TTM Abr-25)</p>
+                        <p class="mt-4 text-gray-700 font-semibold">Caixa em 1T25</p>
+                        <p class="kpi-value">R$9,4 bi</p>
+                    </div>
+                     <div class="border p-4 rounded-lg">
+                        <h4 class="font-bold text-xl mb-2">Risco de Mercado</h4>
+                        <p class="text-sm text-gray-600 mb-4">Alta sensibilidade a juros e preços de veículos. O poder de barganha com montadoras atua como um mitigador.</p>
+                        <p class="text-gray-700 font-semibold">ROE vs. Média do Setor</p>
+                        <div class="flex items-baseline space-x-4 mt-2">
+                           <div>
+                               <p class="kpi-value text-2xl">7.3%</p>
+                               <p class="text-xs text-gray-500">Localiza</p>
+                           </div>
+                           <div>
+                               <p class="text-2xl font-bold text-gray-400">15%</p>
+                               <p class="text-xs text-gray-500">Setor</p>
+                           </div>
+                        </div>
+                         <p class="text-xs text-gray-600 mt-1">ROE baixo apesar da alta alavancagem sugere que a dívida não gera retornos superiores.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy" class="scroll-mt-20">
+            <div class="card">
+                <h2 class="text-3xl font-bold text-[#3A3D42] mb-2">O Ciclo Estratégico da Frota</h2>
+                <p class="text-gray-600 mb-6">O sucesso da Localiza está em seu modelo de negócio integrado, que otimiza o ciclo de vida de cada veículo. A sinergia entre a compra com desconto, a monetização via aluguel e a venda eficiente de seminovos é o que sustenta a resiliência e a liderança de mercado da companhia.</p>
+                <div class="flex flex-col md:flex-row items-stretch justify-around gap-4 text-center">
+                    <div class="flex-1 p-6 bg-blue-50 rounded-lg flex flex-col items-center justify-center">
+                        <div class="text-4xl mb-2">①</div>
+                        <h3 class="text-lg font-bold text-[#4A90E2]">Compra em Volume</h3>
+                        <p class="text-sm text-gray-700">Poder de barganha com montadoras garante descontos de até 20%, reduzindo o custo inicial do ativo.</p>
+                    </div>
+                     <div class="self-center text-4xl font-light text-gray-400 mx-4 hidden md:block">→</div>
+                    <div class="flex-1 p-6 bg-green-50 rounded-lg flex flex-col items-center justify-center">
+                         <div class="text-4xl mb-2">②</div>
+                        <h3 class="text-lg font-bold text-green-600">Aluguel e Gestão</h3>
+                        <p class="text-sm text-gray-700">Monetização da frota com altas margens EBITDA (65-70%) nos segmentos de aluguel e gestão.</p>
+                    </div>
+                     <div class="self-center text-4xl font-light text-gray-400 mx-4 hidden md:block">→</div>
+                    <div class="flex-1 p-6 bg-yellow-50 rounded-lg flex flex-col items-center justify-center">
+                         <div class="text-4xl mb-2">③</div>
+                        <h3 class="text-lg font-bold text-yellow-600">Venda de Seminovos</h3>
+                        <p class="text-sm text-gray-700">Canal de desmobilização eficiente que renova a frota, gera caixa e minimiza perdas com depreciação.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="text-center p-8 mt-8 border-t border-gray-200">
+        <p class="text-sm text-gray-500">Este dashboard é uma visualização de dados baseada no relatório de análise financeira da Localiza. Não constitui recomendação de investimento.</p>
+    </footer>
+
+    <script>
+        const FONT_COLOR = '#3A3D42';
+        const GRID_COLOR = '#E5E7EB';
+        const PALETTE = {
+            blue: '#4A90E2',
+            green: '#50E3C2',
+            yellow: '#F5A623',
+            red: '#D0021B',
+            darkGray: '#3A3D42',
+            lightGray: '#F8F7F4'
+        };
+
+        const wrapLabel = (label, maxLen = 16) => {
+            if (typeof label !== 'string' || label.length <= maxLen) {
+                return label;
+            }
+            const words = label.split(' ');
+            let currentLine = '';
+            const lines = [];
+            for (const word of words) {
+                if ((currentLine + ' ' + word).trim().length > maxLen && currentLine.length > 0) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = (currentLine + ' ' + word).trim();
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        };
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            return Array.isArray(label) ? label.join(' ') : label;
+        };
+
+        const chartDefaultOptions = (extraOptions = {}) => ({
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: FONT_COLOR,
+                        font: { family: "'Inter', sans-serif" }
+                    }
+                },
+                tooltip: {
+                    callbacks: { title: tooltipTitleCallback },
+                    backgroundColor: '#FFFFFF',
+                    titleColor: FONT_COLOR,
+                    bodyColor: FONT_COLOR,
+                    borderColor: GRID_COLOR,
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: FONT_COLOR },
+                    grid: { color: GRID_COLOR }
+                },
+                x: {
+                    ticks: { color: FONT_COLOR },
+                    grid: { display: false }
+                }
+            },
+            ...extraOptions
+        });
+
+        new Chart(document.getElementById('growthChart'), {
+            type: 'bar',
+            data: {
+                labels: ['2020', '2021', '2022', '2023', '2024'],
+                datasets: [{
+                    label: 'Receita Total (R$ bi)',
+                    data: [10.31, 10.90, 17.78, 28.90, 37.27],
+                    backgroundColor: PALETTE.blue,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Lucro Líquido (R$ bi)',
+                    data: [1.05, 2.04, 1.84, 1.81, 1.81],
+                    backgroundColor: PALETTE.green,
+                    type: 'line',
+                    borderColor: PALETTE.green,
+                    yAxisID: 'y', /* Changed to single Y-axis */
+                    tension: 0.3
+                }]
+            },
+            options: chartDefaultOptions({
+                scales: {
+                    y: { 
+                        position: 'left', 
+                        title: { display: true, text: 'Valor (R$ bi)' }, /* Simplified title for single axis */
+                        beginAtZero: true,
+                        max: 40 
+                    },
+                    x: {
+                        ticks: { color: FONT_COLOR },
+                        grid: { display: false }
+                    }
+                }
+            })
+        });
+
+        new Chart(document.getElementById('revenueSplitChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Aluguel', 'Seminovos'],
+                datasets: [{
+                    data: [4.8, 5.3],
+                    backgroundColor: [PALETTE.blue, PALETTE.green],
+                    borderColor: PALETTE.lightGray,
+                    borderWidth: 4
+                }]
+            },
+            options: chartDefaultOptions({ scales: { x: { display: false }, y: { display: false } } })
+        });
+        
+        new Chart(document.getElementById('ebitdaMarginChart'), {
+            type: 'bar',
+            data: {
+                labels: [wrapLabel('Aluguel de Carros'), wrapLabel('Gestão de Frotas'), 'Seminovos'],
+                datasets: [{
+                    label: 'Margem EBITDA (%)',
+                    data: [65.2, 70.0, 2.0],
+                    backgroundColor: [PALETTE.blue, PALETTE.green, PALETTE.yellow]
+                }]
+            },
+            options: chartDefaultOptions({
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: { 
+                    x: { 
+                        ticks: { callback: value => value + '%' },
+                        beginAtZero: true,
+                        max: 80 
+                    } 
+                }
+            })
+        });
+
+        new Chart(document.getElementById('balanceSheetChart'), {
+            type: 'line',
+            data: {
+                labels: ['2020', '2021', '2022', '2023', '2024'],
+                datasets: [{
+                    label: 'Patrimônio Líquido',
+                    data: [6.05, 7.62, 20.57, 25.40, 26.34],
+                    fill: true,
+                    backgroundColor: 'rgba(74, 144, 226, 0.3)',
+                    borderColor: PALETTE.blue,
+                    tension: 0.1
+                }, {
+                    label: 'Passivo Total (Dívida)',
+                    data: [14.39, 17.69, 45.08, 55.55, 60.90],
+                    fill: true,
+                    backgroundColor: 'rgba(245, 166, 35, 0.3)',
+                    borderColor: PALETTE.yellow,
+                    tension: 0.1
+                }]
+            },
+            options: chartDefaultOptions({
+                scales: { 
+                    y: { 
+                        stacked: true, 
+                        title: { display: true, text: 'Valor (R$ bi)' },
+                        beginAtZero: true,
+                        max: 90 
+                    } 
+                }
+            })
+        });
+
+        new Chart(document.getElementById('cashFlowChart'), {
+            type: 'bar',
+            data: {
+                labels: ['2020', '2021', '2022', '2023', '2024'],
+                datasets: [{
+                    label: 'Caixa das Operações (R$ bi)',
+                    data: [0.48, -3.37, -9.10, -9.92, 0.65],
+                    backgroundColor: (ctx) => ctx.raw >= 0 ? PALETTE.green : PALETTE.red,
+                }, {
+                    label: 'Caixa de Financiamento (R$ bi)',
+                    data: [-0.001, 1.38, 5.72, 10.23, 1.37],
+                    backgroundColor: PALETTE.blue,
+                }]
+            },
+            options: chartDefaultOptions({
+                plugins: { legend: { labels: { color: '#FFFFFF' } } },
+                scales: {
+                    y: { 
+                        ticks: { color: '#FFFFFF' }, 
+                        grid: { color: 'rgba(255,255,255,0.2)' }, 
+                        title: { display: true, text: 'Valor (R$ bi)', color: '#FFFFFF' },
+                        min: -12, 
+                        max: 12 
+                    },
+                    x: { ticks: { color: '#FFFFFF' }, grid: { display: false } }
+                }
+            })
+        });
+
+        new Chart(document.getElementById('debtEbitdaChart'), {
+            type: 'line',
+            data: {
+                labels: ['Dez-19', 'Dez-22', 'Set-23', 'Proj. 25'],
+                datasets: [{
+                    label: 'Dívida / EBITDA',
+                    data: [4.1, 4.6, 3.5, 3.0],
+                    borderColor: PALETTE.blue,
+                    tension: 0.1,
+                    pointBackgroundColor: PALETTE.blue,
+                    pointRadius: 5
+                }]
+            },
+            options: chartDefaultOptions({
+                 plugins: { legend: { display: false } },
+                 scales: { 
+                    y: { 
+                        min: 2.0, 
+                        max: 5.0 
+                    } 
+                 }
+            })
+        });
+
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('main section');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 80) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
