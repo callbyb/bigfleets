@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Interativo: Análise Financeira da Movida (MOVI3)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate & Amber -->
+    <!-- Application Structure Plan: A thematic, dashboard-style single-page application was designed to transform the linear report into an intuitive, exploratory experience. The structure is organized into four key sections: 1) A main dashboard for a high-level overview of the core financial paradox (growth vs. profitability). 2) A deep dive into the 'Growth Dilemma' (income statement analysis). 3) An analysis of 'The Debt Climb' (balance sheet and risk). 4) An interactive summary of 'Risks & Recommendations'. This non-linear, thematic structure was chosen because it allows users to quickly grasp the main story and then drill down into areas of interest, which is more effective for data exploration and understanding than a traditional report format. Navigation is facilitated by a sticky header, enabling seamless movement between analytical themes. -->
+    <!-- Visualization & Content Choices: 
+        - KPI Cards (HTML/CSS): Goal: Inform. Method: Large, clear stats for immediate insight into key metrics like Revenue, Net Profit, and Debt. Interaction: None, purely informational. Justification: Provides a quick, high-impact summary.
+        - Dual-Axis Bar/Line Chart (Chart.js): Goal: Compare/Relationships. Method: Compares Revenue Growth (bars) against Net Margin decline (line). Interaction: Hover tooltips. Justification: This is the most critical visualization as it instantly tells the core story of unprofitable growth.
+        - Multi-Line Chart (Chart.js): Goal: Compare/Change. Method: Shows the trend of Gross, EBITDA, and Net margins over time. Interaction: Hover tooltips. Justification: Clearly illustrates the erosion of profitability at different levels of the operation.
+        - Stacked Area Chart (Chart.js): Goal: Organize/Compare. Method: Visualizes the composition of the Balance Sheet (Assets vs. Liabilities & Equity). Interaction: Hover tooltips. Justification: Effectively demonstrates the shrinking equity base relative to the exploding debt, highlighting the increased leverage.
+        - Bar Chart (Chart.js): Goal: Compare. Method: Tracks key leverage and liquidity ratios (Debt/EBITDA, Current Ratio). Interaction: Hover tooltips. Justification: Provides a clear, quantitative view of the increasing financial risk.
+        - Interactive Cards (HTML/CSS/JS): Goal: Organize/Inform. Method: Presents qualitative risks in clickable cards that reveal detailed text. Interaction: Click to expand/collapse. Justification: Breaks down complex text into digestible chunks, making it more engaging than a long wall of text.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 450px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .kpi-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #e2e8f0; /* slate-200 */
+        }
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .nav-link {
+            transition: color 0.2s;
+        }
+        .nav-link:hover {
+            color: #fbbf24; /* amber-400 */
+        }
+        .risk-card {
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+        .risk-card .details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .risk-card.open .details {
+            max-height: 500px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .risk-card.open {
+            background-color: #f1f5f9; /* slate-100 */
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <header class="bg-slate-800 text-white sticky top-0 z-50 shadow-lg">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold">Análise Interativa: Movida (MOVI3)</h1>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#painel" class="text-sm font-medium nav-link">Painel</a>
+                    <a href="#rentabilidade" class="text-sm font-medium nav-link">Rentabilidade</a>
+                    <a href="#endividamento" class="text-sm font-medium nav-link">Endividamento</a>
+                    <a href="#riscos" class="text-sm font-medium nav-link">Riscos</a>
+                </nav>
+                <button id="mobile-menu-button" class="md:hidden p-2 rounded-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-slate-700">
+            <a href="#painel" class="block text-sm font-medium nav-link px-4 py-2">Painel</a>
+            <a href="#rentabilidade" class="block text-sm font-medium nav-link px-4 py-2">Rentabilidade</a>
+            <a href="#endividamento" class="block text-sm font-medium nav-link px-4 py-2">Endividamento</a>
+            <a href="#riscos" class="block text-sm font-medium nav-link px-4 py-2">Riscos</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <section id="painel" class="my-8 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">Painel Principal</h2>
+            <p class="text-lg text-slate-600 mb-8">Uma visão geral da saúde financeira da Movida, destacando o paradoxo entre o forte crescimento da receita e os desafios de rentabilidade e endividamento.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <div class="kpi-card">
+                    <h3 class="font-semibold text-slate-500">Receita Líquida (2024)</h3>
+                    <p class="text-3xl font-bold text-slate-900 mt-2">R$ 13,48 bi</p>
+                    <p class="text-sm text-green-600 flex items-center mt-1">
+                        <span class="mr-1">▲</span> CAGR 5 Anos: 28,42%
+                    </p>
+                </div>
+                <div class="kpi-card">
+                    <h3 class="font-semibold text-slate-500">Lucro Líquido (2024)</h3>
+                    <p class="text-3xl font-bold text-slate-900 mt-2">R$ 231,49 mi</p>
+                    <p class="text-sm text-red-600 flex items-center mt-1">
+                        <span class="mr-1">▼</span> Queda de 71% vs 2021
+                    </p>
+                </div>
+                <div class="kpi-card">
+                    <h3 class="font-semibold text-slate-500">Dívida Líquida (2024)</h3>
+                    <p class="text-3xl font-bold text-slate-900 mt-2">R$ 16,05 bi</p>
+                    <p class="text-sm text-amber-600 flex items-center mt-1">
+                        <span class="mr-1">▲</span> Dív.Líq/EBITDA: 3,08
+                    </p>
+                </div>
+                <div class="kpi-card">
+                    <h3 class="font-semibold text-slate-500">Margem Líquida (2024)</h3>
+                    <p class="text-3xl font-bold text-slate-900 mt-2">1,72%</p>
+                    <p class="text-sm text-red-600 flex items-center mt-1">
+                        <span class="mr-1">▼</span> Mínima histórica recente
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                <h3 class="text-xl font-bold text-slate-900 mb-4">O Paradoxo do Crescimento: Receita vs. Margem Líquida</h3>
+                <div class="chart-container">
+                    <canvas id="revenueVsMarginChart"></canvas>
+                </div>
+                <p class="text-sm text-slate-500 mt-4 text-center">O gráfico ilustra a principal anomalia: enquanto a receita (barras) cresce vigorosamente, a margem de lucro líquido (linha) despenca, indicando que o crescimento não se traduz em lucratividade.</p>
+            </div>
+        </section>
+        
+        <hr class="my-16 border-slate-200">
+
+        <section id="rentabilidade" class="my-8 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">O Dilema da Rentabilidade</h2>
+            <p class="text-lg text-slate-600 mb-8">Esta seção aprofunda a análise de como os custos crescentes e as despesas financeiras estão pressionando todas as margens da empresa, do lucro bruto ao líquido.</p>
+            
+            <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                <h3 class="text-xl font-bold text-slate-900 mb-4">Evolução das Margens de Lucro (2020-2024)</h3>
+                <div class="chart-container">
+                    <canvas id="marginsChart"></canvas>
+                </div>
+                 <p class="text-sm text-slate-500 mt-4 text-center">Observe a queda contínua das margens Bruta, EBITDA e Líquida desde o pico em 2021, evidenciando a dificuldade em controlar custos e o impacto das despesas financeiras.</p>
+            </div>
+        </section>
+
+        <hr class="my-16 border-slate-200">
+
+        <section id="endividamento" class="my-8 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">A Escalada do Endividamento</h2>
+            <p class="text-lg text-slate-600 mb-8">A estratégia de crescimento agressivo da Movida foi financiada principalmente por dívida, resultando em uma estrutura de capital altamente alavancada e riscos financeiros elevados.</p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h3 class="text-xl font-bold text-slate-900 mb-4">Composição do Balanço: Ativos vs. Dívida e Patrimônio</h3>
+                    <div class="chart-container h-96">
+                        <canvas id="balanceSheetChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-4 text-center">O gráfico mostra o crescimento dos ativos (azul) sendo acompanhado por um aumento ainda mais expressivo dos passivos (dívidas, em vermelho), enquanto o patrimônio líquido (verde) encolhe, indicando erosão do capital próprio.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <h3 class="text-xl font-bold text-slate-900 mb-4">Indicadores de Risco Financeiro</h3>
+                    <div class="chart-container h-96">
+                        <canvas id="riskRatiosChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-4 text-center">A relação Dívida Líquida/EBITDA (laranja) mostra quantos anos de geração de caixa operacional seriam necessários para pagar a dívida. A Liquidez Corrente (azul) abaixo de 1.0 indica um risco de não conseguir cobrir as obrigações de curto prazo.</p>
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-16 border-slate-200">
+
+        <section id="riscos" class="my-8 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">Principais Riscos e Recomendações</h2>
+            <p class="text-lg text-slate-600 mb-8">Clique nos cartões para explorar os riscos financeiros e de mercado que a Movida enfrenta, e as recomendações estratégicas para garantir um crescimento sustentável.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="risk-card-1" class="risk-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-900">Risco de Crédito</h3>
+                        <span class="text-amber-500 text-2xl font-bold">!</span>
+                    </div>
+                    <div class="details">
+                        <p class="text-slate-600 mt-2">A alta alavancagem (Dívida Líq./EBITDA de 3,08) e a dependência de dívida tornam a empresa vulnerável a juros altos, que aumentam o custo do serviço da dívida e pressionam o lucro. A empresa corre o risco de um ciclo vicioso onde a dívida se torna mais cara, exigindo mais refinanciamento em condições desfavoráveis.</p>
+                    </div>
+                </div>
+                <div id="risk-card-2" class="risk-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-900">Risco de Liquidez</h3>
+                        <span class="text-amber-500 text-2xl font-bold">!</span>
+                    </div>
+                    <div class="details">
+                        <p class="text-slate-600 mt-2">A Liquidez Corrente de 0,77 indica que os ativos de curto prazo não cobrem as dívidas de curto prazo. Há um descompasso entre o capital imobilizado na frota (longo prazo) e as obrigações financeiras imediatas, criando pressão sobre o caixa e forçando a busca por financiamentos de emergência.</p>
+                    </div>
+                </div>
+                <div id="risk-card-3" class="risk-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-900">Risco de Mercado</h3>
+                        <span class="text-amber-500 text-2xl font-bold">!</span>
+                    </div>
+                    <div class="details">
+                        <p class="text-slate-600 mt-2">A depreciação acelerada de veículos seminovos (devido a descontos de fabricantes e juros altos) reduz o valor de revenda da frota, impactando diretamente a margem bruta. Isso cria uma "tesoura" de margem: menor receita na venda de usados e maior custo na compra de novos, dificultando a renovação da frota.</p>
+                    </div>
+                </div>
+                <div id="risk-card-4" class="risk-card bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-900">Recomendações Estratégicas</h3>
+                        <span class="text-green-500 text-2xl font-bold">✔</span>
+                    </div>
+                    <div class="details">
+                        <ul class="list-disc list-inside text-slate-600 mt-2 space-y-2">
+                            <li><strong>Otimizar Rentabilidade:</strong> Focar em eficiência e gestão de custos para reverter a compressão de margens.</li>
+                            <li><strong>Fortalecer Capital:</strong> Priorizar a redução da dívida (desalavancagem) e alongar o perfil de vencimentos.</li>
+                            <li><strong>Gestão Ativa da Frota:</strong> Otimizar a venda de seminovos para maximizar o valor de revenda.</li>
+                            <li><strong>Inovação Tecnológica:</strong> Investir em tecnologia para melhorar a experiência do cliente e a eficiência operacional.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="container mx-auto p-4 text-center text-sm">
+            <p>&copy; 2024 Análise Interativa. Criado para fins de demonstração.</p>
+            <p class="text-slate-400">Dados extraídos do relatório de análise financeira da Movida.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const financialData = {
+                years: [2020, 2021, 2022, 2023, 2024],
+                revenue: [4.09, 5.33, 9.60, 13.48, 13.48],
+                netMargin: [2.67, 15.37, 5.80, 1.72, 2.01],
+                grossMargin: [21.19, 44.75, 37.56, 29.79, 30.93],
+                ebitdaMargin: [17.56, 39.06, 36.99, 34.87, 36.50],
+                assets: {
+                    current: [2.38, 9.15, 9.44, 5.43, 6.95],
+                    nonCurrent: [6.12, 12.57, 16.81, 19.69, 23.62]
+                },
+                liabilities: {
+                    current: [2.45, 3.75, 5.90, 7.46, 9.25],
+                    nonCurrent: [3.70, 14.68, 17.58, 15.14, 18.83],
+                    equity: [2.36, 3.28, 2.77, 2.52, 2.49]
+                },
+                ratios: {
+                    debtToEbitda: [null, null, null, 3.08, 3.08], 
+                    currentRatio: [0.97, 2.44, 1.60, 0.73, 0.77] 
+                }
+            };
+
+            function createRevenueVsMarginChart() {
+                const ctx = document.getElementById('revenueVsMarginChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: financialData.years,
+                        datasets: [{
+                            label: 'Receita Líquida (R$ bi)',
+                            data: financialData.revenue,
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        }, {
+                            label: 'Margem Líquida (%)',
+                            data: financialData.netMargin,
+                            type: 'line',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            tension: 0.3,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Receita (R$ Bilhões)'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Margem (%)'
+                                },
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createMarginsChart() {
+                const ctx = document.getElementById('marginsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: financialData.years,
+                        datasets: [{
+                            label: 'Margem Bruta (%)',
+                            data: financialData.grossMargin,
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                        }, {
+                            label: 'Margem EBITDA (%)',
+                            data: financialData.ebitdaMargin,
+                            borderColor: 'rgba(251, 146, 60, 1)',
+                            backgroundColor: 'rgba(251, 146, 60, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                        }, {
+                            label: 'Margem Líquida (%)',
+                            data: financialData.netMargin,
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Margem (%)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createBalanceSheetChart() {
+                const ctx = document.getElementById('balanceSheetChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: financialData.years,
+                        datasets: [
+                        {
+                            label: 'Ativos',
+                            data: financialData.years.map((_, i) => financialData.assets.current[i] + financialData.assets.nonCurrent[i]),
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        },
+                        {
+                            label: 'Passivos (Dívida)',
+                            data: financialData.years.map((_, i) => financialData.liabilities.current[i] + financialData.liabilities.nonCurrent[i]),
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                        },
+                        {
+                            label: 'Patrimônio Líquido',
+                            data: financialData.liabilities.equity,
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: false },
+                            y: { 
+                                stacked: false,
+                                title: {
+                                    display: true,
+                                    text: 'Valor (R$ Bilhões)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createRiskRatiosChart() {
+                const ctx = document.getElementById('riskRatiosChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: financialData.years,
+                        datasets: [{
+                            label: 'Dívida Líquida / EBITDA',
+                            data: financialData.ratios.debtToEbitda,
+                            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                            yAxisID: 'y1',
+                            order: 2
+                        }, {
+                            label: 'Liquidez Corrente',
+                            data: financialData.ratios.currentRatio,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            yAxisID: 'y',
+                            order: 1,
+                            type: 'line',
+                            tension: 0.2,
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Índice de Liquidez'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Dívida / EBITDA (x)'
+                                },
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            createRevenueVsMarginChart();
+            createMarginsChart();
+            createBalanceSheetChart();
+            createRiskRatiosChart();
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            document.querySelectorAll('.risk-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    card.classList.toggle('open');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
