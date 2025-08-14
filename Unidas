@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Interativa: A Transformação da Unidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate & Amber Neutrals -->
+    <!-- Application Structure Plan: A narrative-driven, single-page application that guides the user through the story of Unidas' transformation. The structure flows from a high-level summary of the 'Two Unidas' concept, through the pivotal merger event, into detailed comparisons of pre- and post-merger performance via interactive charts. It culminates in a tabbed interactive section for deep-diving into specific risks (Credit, Liquidity, Market) and concludes with clear, card-based strategic recommendations. This structure was chosen to make a complex financial story digestible and engaging, prioritizing the narrative flow over a simple data dump, thus enhancing user understanding and retention. -->
+    <!-- Visualization & Content Choices: 
+        - DRE Trends (Revenue/EBITDA): A line chart was chosen to clearly show the growth trend and the sharp structural break post-merger (Goal: Change). Interaction includes tooltips on hover. Library: Chart.js.
+        - Leverage Ratio (Debt/EBITDA): A bar chart is used for direct period-to-period comparison, with the high-risk 2023 bar highlighted in a different color to emphasize the increased risk (Goal: Compare). Library: Chart.js.
+        - Risk Analysis: An interactive tabbed component (HTML/CSS/JS) was selected to organize dense textual information cleanly, allowing users to explore detailed risks without overwhelming the UI (Goal: Organize).
+        - Key Metrics & Recommendations: Presented in styled cards (HTML/Tailwind) to draw attention to the most critical takeaways and actionable insights (Goal: Inform).
+        This approach uses the best visualization for each data type to support the overall narrative structure. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #334155; /* slate-700 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-button.active {
+            background-color: #1e293b; /* slate-800 */
+            color: #ffffff;
+        }
+        .risk-content {
+            display: none;
+        }
+        .risk-content.active {
+            display: block;
+        }
+        .kpi-card {
+            background-color: #ffffff;
+            border-left: 4px solid #f59e0b; /* amber-500 */
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-slate-800">Análise da Unidas</h1>
+            <nav>
+                <a href="#performance" class="text-slate-600 hover:text-slate-900 mx-2 font-medium">Desempenho</a>
+                <a href="#risks" class="text-slate-600 hover:text-slate-900 mx-2 font-medium">Riscos</a>
+                <a href="#recommendations" class="text-slate-600 hover:text-slate-900 ml-2 font-medium">Recomendações</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <section class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4">A História de Duas Unidas</h2>
+            <p class="max-w-3xl mx-auto text-lg text-slate-600">
+                A fusão com a Localiza em 2023 não foi apenas uma transação; foi a criação de uma empresa fundamentalmente nova. Esta análise explora a jornada da Unidas: de uma gigante em crescimento a uma entidade mais enxuta, mais alavancada e com um novo conjunto de desafios e oportunidades.
+            </p>
+        </section>
+
+        <section id="performance" class="mb-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-slate-800 mb-2">Ponto de Virada: Desempenho Pré e Pós-Fusão</h3>
+                <p class="max-w-3xl mx-auto text-slate-600">
+                    Os gráficos abaixo ilustram a drástica mudança estrutural. Antes de 2023, a Unidas exibia um crescimento robusto. Após a fusão e a venda de ativos, a escala operacional foi redefinida, e o perfil de risco, alterado.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-semibold text-slate-800 mb-4 text-center">Receita Líquida e EBITDA (R$ Bilhões)</h4>
+                    <div class="chart-container">
+                        <canvas id="revenueEbitdaChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-4 text-center">A linha pontilhada marca a transição para a "Nova Unidas" em 2023, evidenciando a queda na escala operacional devido à venda de ativos.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-semibold text-slate-800 mb-4 text-center">Alavancagem Financeira (Dívida Líq./EBITDA)</h4>
+                    <div class="chart-container">
+                        <canvas id="leverageChart"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-4 text-center">O salto em 2023 para <strong>5.8x</strong> revela o principal desafio da nova estrutura: um risco de crédito significativamente maior.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="risks" class="mb-16 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-slate-800 mb-2">Análise de Riscos da "Nova Unidas"</h3>
+                <p class="max-w-3xl mx-auto text-slate-600">
+                    A estrutura de capital e o novo foco de mercado da empresa pós-fusão introduzem riscos críticos que precisam ser gerenciados. Clique nas abas para explorar cada categoria de risco em detalhe.
+                </p>
+            </div>
+
+            <div class="max-w-4xl mx-auto">
+                <div class="flex justify-center border-b border-slate-200 mb-6">
+                    <button id="btn-risco-credito" class="nav-button active text-lg font-medium py-3 px-6 -mb-px border-b-2 border-transparent focus:outline-none">Crédito</button>
+                    <button id="btn-risco-liquidez" class="nav-button text-lg font-medium py-3 px-6 -mb-px border-b-2 border-transparent focus:outline-none">Liquidez</button>
+                    <button id="btn-risco-mercado" class="nav-button text-lg font-medium py-3 px-6 -mb-px border-b-2 border-transparent focus:outline-none">Mercado</button>
+                </div>
+
+                <div id="content-risco-credito" class="risk-content active">
+                    <div class="bg-white p-8 rounded-lg shadow-md">
+                        <h4 class="text-2xl font-bold text-amber-600 mb-4">Risco de Crédito: Elevado</h4>
+                        <p class="text-slate-600 mb-4">O principal ponto de atenção. A alavancagem de <strong>5.8x Dívida Líquida/EBITDA</strong> indica uma capacidade de serviço da dívida significativamente reduzida. A "Nova Unidas" gera menos caixa operacional em relação ao seu endividamento, tornando-a mais vulnerável a choques de mercado ou operacionais.</p>
+                        <ul class="list-disc list-inside space-y-2 text-slate-700">
+                            <li><strong>Causa Principal:</strong> A redução do EBITDA foi proporcionalmente maior que a redução da dívida após a venda de ativos.</li>
+                            <li><strong>Implicações:</strong> Custo de capital mais alto, cláusulas de dívida mais restritivas e dificuldade em obter novos financiamentos.</li>
+                            <li><strong>Agravante:</strong> Vencimentos de dívida de curto prazo pressionam a necessidade de refinanciamento em um cenário de alta alavancagem.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="content-risco-liquidez" class="risk-content">
+                    <div class="bg-white p-8 rounded-lg shadow-md">
+                        <h4 class="text-2xl font-bold text-amber-600 mb-4">Risco de Liquidez: Sob Tensão</h4>
+                        <p class="text-slate-600 mb-4">Apesar de uma "posição de caixa forte" e acesso a linhas de crédito, a liquidez está sob pressão. A empresa não está gerando caixa suficiente de suas operações para cobrir investimentos e obrigações.</p>
+                        <ul class="list-disc list-inside space-y-2 text-slate-700">
+                            <li><strong>Sinal de Alerta:</strong> Fluxo de Caixa Livre (FCL) <strong>negativo</strong> em 2023.</li>
+                            <li><strong>O Paradoxo:</strong> Possui reservas de caixa, mas a operação consome esses recursos em vez de gerá-los.</li>
+                            <li><strong>Desafio Estrutural:</strong> A combinação de FCL negativo com vencimentos de dívida de curto prazo pode esgotar rapidamente as reservas de caixa se a performance operacional não melhorar.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="content-risco-mercado" class="risk-content">
+                    <div class="bg-white p-8 rounded-lg shadow-md">
+                        <h4 class="text-2xl font-bold text-amber-600 mb-4">Risco de Mercado: Amplificado</h4>
+                        <p class="text-slate-600 mb-4">O novo foco em venda de seminovos e a estrutura da dívida aumentam a exposição da empresa a fatores externos que ela não controla.</p>
+                        <ul class="list-disc list-inside space-y-2 text-slate-700">
+                            <li><strong>Taxas de Juros:</strong> Maior proporção de dívida com taxa variável. Uma alta na Selic aumenta diretamente as despesas financeiras, pressionando o lucro.</li>
+                            <li><strong>Ciclos Econômicos:</strong> A venda de carros usados é altamente sensível a desacelerações econômicas, que reduzem o poder de compra e afetam a demanda e os preços.</li>
+                            <li><strong>Concorrência e Preços:</strong> O mercado de seminovos é intensamente competitivo, o que pode comprimir as margens de lucro, que já são mais baixas no novo modelo de negócio.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="recommendations" class="scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-slate-800 mb-2">Recomendações Estratégicas</h3>
+                <p class="max-w-3xl mx-auto text-slate-600">
+                    Para mitigar os riscos e garantir a sustentabilidade, a "Nova Unidas" deve focar em ações decisivas de gestão financeira e otimização operacional.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="kpi-card p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-semibold text-slate-800 mb-2">Desalavancagem Urgente</h4>
+                    <p class="text-slate-600">Prioridade máxima é reduzir o índice Dívida Líq./EBITDA. Utilizar caixa para quitar dívidas, reestruturar passivos alongando prazos e buscar a geração de fluxo de caixa positivo são passos cruciais.</p>
+                </div>
+                <div class="kpi-card p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-semibold text-slate-800 mb-2">Otimização Operacional</h4>
+                    <p class="text-slate-600">Implementar um controle de custos rigoroso e otimizar a gestão de estoque de seminovos para acelerar o ciclo de conversão de caixa. A eficiência é chave para reverter o fluxo de caixa negativo.</p>
+                </div>
+                <div class="kpi-card p-6 rounded-lg shadow-md">
+                    <h4 class="text-xl font-semibold text-slate-800 mb-2">Gestão de Risco de Mercado</h4>
+                    <p class="text-slate-600">Considerar estratégias de hedge para a dívida de taxa variável. Desenvolver modelos de precificação dinâmica e planos de contingência para cenários de desaceleração econômica.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 mt-16">
+        <div class="container mx-auto px-4 py-6 text-center">
+            <p>&copy; 2024 Análise Interativa. Todos os dados são baseados em relatórios públicos da Unidas.</p>
+            <p class="text-sm text-slate-400 mt-1">Esta é uma visualização de dados para fins educacionais e de análise.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chartData = {
+                labels: ['2019', '2020', '2021', '2022', '2023'],
+                revenue: [3.3, 6.1, 8.0, 10.9, 2.7],
+                ebitda: [2.2, 4.4, 6.3, 8.1, 1.9],
+                leverage: [3.6, 3.6, 3.2, 2.9, 5.8]
+            };
+
+            const ctxRevenue = document.getElementById('revenueEbitdaChart').getContext('2d');
+            new Chart(ctxRevenue, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Receita Líquida',
+                        data: chartData.revenue,
+                        borderColor: '#3b82f6', // blue-500
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointBackgroundColor: '#3b82f6',
+                        fill: true,
+                    }, {
+                        label: 'EBITDA',
+                        data: chartData.ebitda,
+                        borderColor: '#10b981', // emerald-500
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointBackgroundColor: '#10b981',
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y + ' B';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'R$ Bilhões'
+                            }
+                        }
+                    },
+                    segments: {
+                        'line-0': {
+                            from: 3,
+                            to: 4,
+                            options: {
+                                borderDash: [6, 6],
+                                borderColor: '#a1a1aa' // zinc-400
+                            }
+                        },
+                         'line-1': {
+                            from: 3,
+                            to: 4,
+                            options: {
+                                borderDash: [6, 6],
+                                borderColor: '#a1a1aa' // zinc-400
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctxLeverage = document.getElementById('leverageChart').getContext('2d');
+            new Chart(ctxLeverage, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Dívida Líq./EBITDA',
+                        data: chartData.leverage,
+                        backgroundColor: chartData.leverage.map(val => val > 5 ? '#f59e0b' : '#3b82f6'), // amber-500 for high risk
+                        borderColor: chartData.leverage.map(val => val > 5 ? '#d97706' : '#2563eb'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Múltiplo (x)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const riskButtons = document.querySelectorAll('.nav-button');
+            const riskContents = document.querySelectorAll('.risk-content');
+
+            riskButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    riskButtons.forEach(btn => btn.classList.remove('active', 'border-slate-800'));
+                    button.classList.add('active', 'border-slate-800');
+
+                    const targetId = button.id.replace('btn-', 'content-');
+                    riskContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === targetId) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+            
+            // Activate first button by default
+            document.getElementById('btn-risco-credito').classList.add('border-slate-800');
+        });
+    </script>
+</body>
+</html>
+
