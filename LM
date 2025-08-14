@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Interativa - LM Mobilidade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Subtle Accents -->
+    <!-- Application Structure Plan: A thematic, dashboard-style single-page application. The structure guides the user from a high-level overview to detailed financial performance and risk analysis, using interactive components like stat cards, dynamic charts controlled by buttons, and tabbed sections. This non-linear structure was chosen to make the dense financial report more digestible and engaging, allowing users to explore data based on their interests (e.g., performance vs. risk) rather than following the report's rigid format. The core narrative—aggressive growth balanced by VW's strategic support—is highlighted upfront for immediate context. -->
+    <!-- Visualization & Content Choices: Data from the report is translated into interactive visualizations to achieve specific communication goals. For example, 'Receita & Lucro' (Goal: Show growth) uses a combo bar/line chart (Method: Chart.js/Canvas) for efficient comparison. 'Risco de Liquidez' (Goal: Show pressure) uses a multi-line chart to visualize the closing gap between cash and short-term debt. Risk categories are organized into tabs (Method: HTML/JS) to reduce cognitive load. This approach pairs quantitative data with concise textual explanations, all updated interactively, ensuring clarity and user engagement without using SVG or Mermaid. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #383734;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0033A0;
+            border-bottom-color: #0033A0;
+        }
+        .tab-button {
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            background-color: #0033A0;
+            color: #ffffff;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .kpi-card {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .section-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1rem;
+        }
+        .section-subtitle {
+            font-size: 1.125rem;
+            color: #5f5f5f;
+            max-width: 800px;
+            margin: 0 auto 2.5rem auto;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl font-bold text-[#0033A0]">LM</span>
+                <span class="text-xl font-semibold text-gray-700">Análise Financeira</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#overview" class="nav-link pb-1">Visão Geral</a>
+                <a href="#performance" class="nav-link pb-1">Desempenho</a>
+                <a href="#risk" class="nav-link pb-1">Riscos</a>
+                <a href="#conclusion" class="nav-link pb-1">Conclusão</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="overview" class="py-16 md:py-24 text-center bg-white">
+            <div class="container mx-auto px-6">
+                <h1 class="text-3xl md:text-5xl font-bold text-gray-800 mb-4">Análise Interativa da LM Mobilidade</h1>
+                <p class="section-subtitle">Uma visão aprofundada sobre o crescimento, a estrutura financeira e os riscos da companhia entre 2019 e 2024, destacando a transformação estratégica após a aquisição pelo Grupo Volkswagen.</p>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto mb-12">
+                    <div class="kpi-card">
+                        <p class="text-sm font-medium text-gray-500">Receita Líquida (Últimos 12M)</p>
+                        <p class="text-3xl font-bold text-[#0033A0]">R$ 3,7 Bi</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="text-sm font-medium text-gray-500">Frota Total (Jun/24)</p>
+                        <p class="text-3xl font-bold text-[#0033A0]">90.000</p>
+                        <p class="text-xs text-green-600">+26% vs 2022</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="text-sm font-medium text-gray-500">Dívida Bruta (Jun/24)</p>
+                        <p class="text-3xl font-bold text-[#D9534F]">R$ 9,1 Bi</p>
+                    </div>
+                    <div class="kpi-card">
+                        <p class="text-sm font-medium text-gray-500">Alavancagem Bruta (1S24)</p>
+                        <p class="text-3xl font-bold text-[#D9534F]">~4,7x</p>
+                        <p class="text-xs text-gray-500">Dívida Bruta/EBITDA</p>
+                    </div>
+                </div>
+                
+                <div class="max-w-4xl mx-auto text-left bg-gray-50 p-8 rounded-lg border">
+                     <h3 class="text-xl font-semibold mb-3 text-gray-800">A Dupla Face do Crescimento: Expansão Agressiva com Suporte Estratégico</h3>
+                     <p class="text-gray-600">A trajetória da LM Mobilidade é marcada por uma expansão acelerada, refletida no crescimento expressivo da frota e da receita. Essa estratégia, intensiva em capital, resultou em um aumento significativo da dívida e pressão sobre o fluxo de caixa. O ponto de inflexão ocorre em 2022, com a aquisição pelo Grupo Volkswagen. Este evento transformador, embora não elimine os riscos associados à alta alavancagem, fornece um suporte financeiro robusto e acesso privilegiado ao mercado de capitais, atuando como um mitigador crucial e pilar de sustentação para a estratégia de crescimento da empresa.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="performance" class="py-16 md:py-24 text-center">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Desempenho Financeiro</h2>
+                <p class="section-subtitle">Explore a evolução dos principais indicadores financeiros da LM Mobilidade. A empresa demonstra uma forte capacidade de expandir suas operações e manter a rentabilidade, financiada por um aumento correspondente no endividamento para suportar o crescimento da frota.</p>
+                
+                <div class="flex justify-center space-x-2 md:space-x-4 mb-8">
+                    <button id="btn-receita" class="tab-button px-4 py-2 text-sm md:text-base rounded-md font-semibold bg-gray-200 text-gray-700">Receita & Lucro</button>
+                    <button id="btn-divida" class="tab-button px-4 py-2 text-sm md:text-base rounded-md font-semibold bg-gray-200 text-gray-700">Ativos & Dívida</button>
+                    <button id="btn-frota" class="tab-button px-4 py-2 text-sm md:text-base rounded-md font-semibold bg-gray-200 text-gray-700">Frota & CAPEX</button>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                    <div id="performance-text" class="mt-6 max-w-3xl mx-auto text-left text-gray-600 text-sm md:text-base">
+                        <p>Selecione uma categoria acima para visualizar o gráfico e a análise correspondente.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="risk" class="py-16 md:py-24 text-center bg-white">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Análise de Risco</h2>
+                <p class="section-subtitle">A avaliação de risco revela um equilíbrio delicado. A alta alavancagem e a pressão na liquidez de curto prazo são os principais desafios, mas são significativamente mitigados pelo forte suporte do controlador e pelo bom acesso ao mercado de capitais.</p>
+                
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex border-b border-gray-200 mb-8">
+                        <button data-tab="credito" class="risk-tab-button flex-1 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-[#0033A0] hover:border-[#0033A0] transition-all duration-300">Crédito</button>
+                        <button data-tab="liquidez" class="risk-tab-button flex-1 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-[#0033A0] hover:border-[#0033A0] transition-all duration-300">Liquidez</button>
+                        <button data-tab="mercado" class="risk-tab-button flex-1 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-[#0033A0] hover:border-[#0033A0] transition-all duration-300">Mercado</button>
+                    </div>
+
+                    <div id="risk-content" class="text-left">
+                        <!-- Content will be injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="py-16 md:py-24 text-center">
+            <div class="container mx-auto px-6">
+                <h2 class="section-title">Observações Críticas e Conclusão</h2>
+                <p class="section-subtitle">A análise revela uma empresa em plena expansão, com uma estratégia de crescimento bem definida, mas que acarreta riscos financeiros inerentes. A seguir, os pontos-chave e as recomendações para um potencial cliente.</p>
+
+                <div class="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto text-left">
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-[#0033A0]">
+                        <h3 class="font-bold text-lg mb-2">🚀 Crescimento Acelerado</h3>
+                        <p class="text-gray-600">A LM demonstra forte capacidade de expandir receita e frota, capitalizando sobre um mercado com alto potencial. A performance operacional é sólida, com margens saudáveis.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-[#D9534F]">
+                        <h3 class="font-bold text-lg mb-2">⚖️ Alta Alavancagem</h3>
+                        <p class="text-gray-600">O crescimento é financiado por dívida, resultando em alta alavancagem e fluxo de caixa livre negativo. Isso cria uma dependência contínua de financiamento externo.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-[#F0AD4E]">
+                        <h3 class="font-bold text-lg mb-2">💧 Pressão na Liquidez</h3>
+                        <p class="text-gray-600">A relação entre caixa e dívida de curto prazo se apertou em 2024, exigindo uma gestão de refinanciamento ativa e contínua.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-[#5CB85C]">
+                        <h3 class="font-bold text-lg mb-2">🛡️ O Efeito Volkswagen</h3>
+                        <p class="text-gray-600">O controle pelo Grupo VW é o principal mitigador de risco. Ele garante suporte financeiro, acesso a capital e confere credibilidade, sendo um diferencial de segurança para clientes e credores.</p>
+                    </div>
+                </div>
+
+                <div class="max-w-4xl mx-auto mt-12 text-left bg-blue-50 p-8 rounded-lg">
+                     <h3 class="text-xl font-semibold mb-3 text-gray-800">Recomendações para o Cliente</h3>
+                     <ul class="list-disc list-inside space-y-3 text-gray-700">
+                        <li><b>Monitoramento Contínuo:</b> Acompanhar os indicadores de alavancagem e liquidez da empresa, especialmente em cenários de alta de juros.</li>
+                        <li><b>Avaliação Contratual:</b> Em contratos de longo prazo, considerar a solidez proporcionada pelo controlador como um fator de estabilidade do serviço.</li>
+                        <li><b>Diálogo Estratégico:</b> Manter comunicação aberta para entender os planos de financiamento e gestão de frota da LM, que podem impactar custos e serviços.</li>
+                        <li><b>Reconhecer o Suporte:</b> Valorizar o apoio do Grupo Volkswagen como um diferencial de segurança que aumenta a confiabilidade da LM como parceira de longo prazo.</li>
+                     </ul>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <p>Esta é uma aplicação interativa gerada para análise de dados financeiros.</p>
+            <p class="text-sm text-gray-400 mt-2">Fonte dos Dados: Relatório de Análise Financeira da LM Mobilidade (2019-2024).</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const performanceChartCtx = document.getElementById('performanceChart').getContext('2d');
+            let currentChart;
+
+            const financialData = {
+                labels: ['2019', '2020', '2021', '2022', '2023', '2024 (UDM)'],
+                receita: [872, 510, 1142, 1244, 2963, 3700],
+                lucro: [null, 36, null, 141, 160, null],
+                ativos: [null, 1795, null, 8175, 12199, null],
+                divida: [1078, null, 1600, 5649, 6130, 9100],
+                frota: [null, null, 27, 71, 85, 90],
+                capex: [null, null, 131, 3083, 1400, 2800 * 2],
+                alavancagem: [3.7, null, 2.7, 5.0, 6.1, 5.7],
+                caixa: [268, null, 619, 978, 1611, 1200],
+                dividaCP: [null, null, 759, 1099, 1878, 2700]
+            };
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if (context.dataset.isCurrency) {
+                                       label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(context.parsed.y) + ' M';
+                                    } else if (context.dataset.isUnit) {
+                                       label += new Intl.NumberFormat('pt-BR').format(context.parsed.y) + ' mil';
+                                    } else {
+                                       label += context.parsed.y;
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Valores (R$ Milhões)'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Unidades (Mil)'
+                        }
+                    }
+                }
+            };
+
+            function updatePerformanceChart(type) {
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+
+                document.querySelectorAll('#performance .tab-button').forEach(b => b.classList.remove('active'));
+                
+                let config = {};
+                let textContent = '';
+
+                switch (type) {
+                    case 'receita':
+                        document.getElementById('btn-receita').classList.add('active');
+                        config = {
+                            type: 'bar',
+                            data: {
+                                labels: financialData.labels,
+                                datasets: [{
+                                    label: 'Receita Líquida',
+                                    data: financialData.receita,
+                                    backgroundColor: 'rgba(0, 51, 160, 0.6)',
+                                    borderColor: 'rgba(0, 51, 160, 1)',
+                                    borderWidth: 1,
+                                    yAxisID: 'y',
+                                    isCurrency: true
+                                }, {
+                                    label: 'Lucro Líquido',
+                                    data: financialData.lucro,
+                                    type: 'line',
+                                    borderColor: '#5CB85C',
+                                    backgroundColor: '#5CB85C',
+                                    tension: 0.3,
+                                    yAxisID: 'y',
+                                    isCurrency: true
+                                }]
+                            },
+                            options: { ...chartOptions, scales: { y: { title: { display: true, text: 'Valores (R$ Milhões)' } } } }
+                        };
+                        textContent = `A receita líquida da LM demonstra um crescimento exponencial, especialmente a partir de 2022, impulsionada pela expansão da frota e aquisições. O lucro líquido acompanha a tendência de crescimento, embora em menor proporção, refletindo os altos custos de depreciação e despesas financeiras associadas à expansão.`;
+                        break;
+                    case 'divida':
+                        document.getElementById('btn-divida').classList.add('active');
+                        config = {
+                            type: 'bar',
+                            data: {
+                                labels: financialData.labels.filter((_, i) => financialData.ativos[i] !== null),
+                                datasets: [{
+                                    label: 'Ativos Totais',
+                                    data: financialData.ativos.filter(v => v !== null),
+                                    backgroundColor: 'rgba(92, 184, 92, 0.6)',
+                                    borderColor: 'rgba(92, 184, 92, 1)',
+                                    borderWidth: 1,
+                                    isCurrency: true
+                                }, {
+                                    label: 'Dívida Total',
+                                    data: financialData.divida.filter((_,i) => financialData.ativos[i] !== null),
+                                    backgroundColor: 'rgba(217, 83, 79, 0.6)',
+                                    borderColor: 'rgba(217, 83, 79, 1)',
+                                    borderWidth: 1,
+                                    isCurrency: true
+                                }]
+                            },
+                            options: { ...chartOptions, scales: { y: { title: { display: true, text: 'Valores (R$ Milhões)' } } } }
+                        };
+                        textContent = `O balanço patrimonial reflete a estratégia intensiva em capital. O crescimento dos ativos, majoritariamente a frota de veículos, foi financiado por um aumento substancial da dívida. Essa estrutura de capital alavancada é comum no setor, mas exige uma gestão financeira cuidadosa.`;
+                        break;
+                    case 'frota':
+                        document.getElementById('btn-frota').classList.add('active');
+                        config = {
+                            type: 'bar',
+                            data: {
+                                labels: financialData.labels,
+                                datasets: [{
+                                    label: 'Frota (mil veículos)',
+                                    data: financialData.frota,
+                                    backgroundColor: 'rgba(240, 173, 78, 0.6)',
+                                    borderColor: 'rgba(240, 173, 78, 1)',
+                                    borderWidth: 1,
+                                    yAxisID: 'y1',
+                                    isUnit: true
+                                }, {
+                                    label: 'CAPEX (R$ Milhões)',
+                                    data: financialData.capex,
+                                    type: 'line',
+                                    borderColor: '#0033A0',
+                                    backgroundColor: '#0033A0',
+                                    tension: 0.3,
+                                    yAxisID: 'y',
+                                    isCurrency: true
+                                }]
+                            },
+                            options: chartOptions
+                        };
+                        textContent = `O crescimento da frota é o motor da expansão da LM. O gráfico ilustra a forte correlação entre os investimentos (CAPEX) e o aumento do número de veículos. Os picos de CAPEX, especialmente em 2022 e 2024, resultaram em saltos significativos no tamanho da frota.`;
+                        break;
+                }
+                
+                currentChart = new Chart(performanceChartCtx, config);
+                document.getElementById('performance-text').innerHTML = `<p>${textContent}</p>`;
+            }
+
+            document.getElementById('btn-receita').addEventListener('click', () => updatePerformanceChart('receita'));
+            document.getElementById('btn-divida').addEventListener('click', () => updatePerformanceChart('divida'));
+            document.getElementById('btn-frota').addEventListener('click', () => updatePerformanceChart('frota'));
+            
+            document.getElementById('btn-receita').click();
+
+            const riskTabs = document.querySelectorAll('.risk-tab-button');
+            const riskContent = document.getElementById('risk-content');
+
+            const riskData = {
+                credito: {
+                    title: 'Risco de Crédito: Alavancagem Elevada, Suporte Sólido',
+                    text: 'A alavancagem da empresa é alta, atingindo um pico em 2023 antes de mostrar sinais de melhora em 2024. Embora o indicador Dívida Bruta/EBITDA esteja acima do ideal, o risco é mitigado pelo suporte do Grupo Volkswagen, refletido em ratings de crédito estáveis (AA(bra)). O mercado confia na capacidade da empresa de honrar seus compromissos devido à força de seu controlador.',
+                    chart: {
+                        type: 'bar',
+                        data: {
+                            labels: financialData.labels.filter((_, i) => financialData.alavancagem[i] !== null),
+                            datasets: [{
+                                label: 'Alavancagem Bruta (Dívida/EBITDA)',
+                                data: financialData.alavancagem.filter(v => v !== null),
+                                backgroundColor: 'rgba(217, 83, 79, 0.6)',
+                                borderColor: 'rgba(217, 83, 79, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { y: { title: { display: true, text: 'Índice (x)' } }, y1: { display: false } } }
+                    }
+                },
+                liquidez: {
+                    title: 'Risco de Liquidez: Pressão de Curto Prazo',
+                    text: 'O fluxo de caixa livre consistentemente negativo, devido aos altos investimentos, exige que a empresa recorra ao mercado para rolar suas dívidas. A relação entre o caixa disponível e a dívida de curto prazo caiu para 0,4x em junho de 2024, indicando uma necessidade de gerenciamento de liquidez muito ativo. O bom acesso ao mercado de capitais é, novamente, um fator crucial para mitigar este risco.',
+                     chart: {
+                        type: 'line',
+                        data: {
+                            labels: financialData.labels.filter((_, i) => financialData.caixa[i] !== null && financialData.dividaCP[i] !== null),
+                            datasets: [{
+                                label: 'Caixa e Equivalentes',
+                                data: financialData.caixa.filter((_, i) => financialData.caixa[i] !== null && financialData.dividaCP[i] !== null),
+                                borderColor: '#5CB85C',
+                                backgroundColor: 'rgba(92, 184, 92, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                isCurrency: true
+                            }, {
+                                label: 'Dívida de Curto Prazo',
+                                data: financialData.dividaCP.filter((_, i) => financialData.caixa[i] !== null && financialData.dividaCP[i] !== null),
+                                borderColor: '#D9534F',
+                                backgroundColor: 'rgba(217, 83, 79, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                isCurrency: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { y: { stacked: false, title: { display: true, text: 'Valores (R$ Milhões)' } }, y1: { display: false } } }
+                    }
+                },
+                mercado: {
+                    title: 'Risco de Mercado: Sensibilidade a Juros e Preços',
+                    text: 'A LM opera em um setor resiliente e com grande potencial de crescimento no Brasil. No entanto, sua rentabilidade é sensível a fatores macroeconômicos, como a volatilidade dos preços dos veículos e, principalmente, as taxas de juros, que impactam diretamente o custo de sua dívida e a rentabilidade das operações. A empresa demonstrou capacidade de se adaptar, recuperando margens em 2024 após a normalização dos preços dos veículos.',
+                    chart: null
+                }
+            };
+            
+            let riskChart;
+            function updateRiskContent(tab) {
+                riskTabs.forEach(t => t.classList.remove('active', 'text-[#0033A0]', 'border-[#0033A0]'));
+                document.querySelector(`.risk-tab-button[data-tab="${tab}"]`).classList.add('active', 'text-[#0033A0]', 'border-[#0033A0]');
+                
+                const content = riskData[tab];
+                let html = `
+                    <div class="p-4 md:p-6 bg-gray-50 rounded-lg">
+                        <h3 class="text-lg md:text-xl font-semibold mb-3 text-gray-800">${content.title}</h3>
+                        <p class="text-gray-600 mb-6">${content.text}</p>
+                        ${content.chart ? '<div class="chart-container h-[300px] md:h-[400px]"><canvas id="riskChartCanvas"></canvas></div>' : '<div class="text-center p-8 bg-gray-100 rounded-md"><p class="font-medium text-gray-500">Análise qualitativa. Não há gráfico para esta categoria.</p></div>'}
+                    </div>
+                `;
+                riskContent.innerHTML = html;
+
+                if (content.chart) {
+                    if(riskChart) riskChart.destroy();
+                    const riskChartCtx = document.getElementById('riskChartCanvas').getContext('2d');
+                    riskChart = new Chart(riskChartCtx, content.chart);
+                }
+            }
+
+            riskTabs.forEach(tab => {
+                tab.addEventListener('click', () => updateRiskContent(tab.dataset.tab));
+            });
+            
+            updateRiskContent('credito');
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 100) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').includes(current)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
